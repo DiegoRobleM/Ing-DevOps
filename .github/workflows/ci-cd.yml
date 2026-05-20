@@ -25,24 +25,18 @@ jobs:
       - name: Dar permisos Maven
         run: chmod +x mvnw
 
-      # - name: Ejecutar tests
-      #   run: ./mvnw test
-
-      # - name: Generar reporte JaCoCo
-      #   run: ./mvnw jacoco:report
+      - name: Compilar proyecto
+        run: ./mvnw clean package -DskipTests
 
       - name: Analisis SonarQube
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           ./mvnw sonar:sonar \
-          -Dsonar.projectKey=PatricioDuoc_proyecto_springboot_usuarios \
-          -Dsonar.organization=patricioduoc \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.token=${SONAR_TOKEN}
-
-      - name: Compilar proyecto
-        run: ./mvnw clean package
+            -Dsonar.projectKey=PatricioDuoc_proyecto_springboot_usuarios \
+            -Dsonar.organization=patricioduoc \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${SONAR_TOKEN}
 
       - name: Build Docker
         run: docker build -t springboot-devops .

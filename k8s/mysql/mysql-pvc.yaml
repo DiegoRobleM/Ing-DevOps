@@ -1,0 +1,14 @@
+# Almacenamiento persistente para que los datos de MySQL sobrevivan si el
+# pod se reinicia. Docker Desktop Kubernetes trae su propio StorageClass
+# por defecto ("hostpath"), por eso no se especifica storageClassName.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: devops-usuarios
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

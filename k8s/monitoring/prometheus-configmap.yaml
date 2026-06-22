@@ -1,0 +1,26 @@
+# Configuracion de scraping: a quien le pregunta Prometheus por metricas y
+# cada cuanto. "springboot-app" trae metricas de runtime (CPU, memoria,
+# requests HTTP). "pushgateway" reenvia metricas que el pipeline de CI/CD
+# empuja manualmente (duracion del build, % de cobertura de pruebas), porque
+# esos valores no existen "en vivo" dentro de la app sino solo durante el
+# pipeline.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: devops-usuarios
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      - job_name: 'springboot-app'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['springboot-app-service:8080']
+
+      - job_name: 'pushgateway'
+        honor_labels: true
+        static_configs:
+          - targets: ['pushgateway-service:9091']

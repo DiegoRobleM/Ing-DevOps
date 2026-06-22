@@ -1,5 +1,11 @@
 version: '3.8'
 
+# Uso local/manual (no es parte del pipeline): levanta la app + MySQL para
+# probar todo en tu maquina sin necesidad de Kubernetes.
+#   docker compose up -d --build
+#   curl http://localhost:8080/usuarios
+#   docker compose down -v   (para limpiar)
+
 services:
 
   mysql:
@@ -8,19 +14,4 @@ services:
     restart: always
 
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: usuariosdb
-
-    ports:
-      - "3306:3306"
-
-  app:
-    build: .
-    container_name: springboot-app
-    restart: always
-
-    ports:
-      - "8080:8080"
-
-    depends_on:
-      - mysql
+      MYSQ

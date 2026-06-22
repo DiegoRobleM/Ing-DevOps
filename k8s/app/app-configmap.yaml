@@ -1,0 +1,10 @@
+# Configuracion no sensible de la app. La contrasena sigue viniendo del
+# Secret de MySQL (mysql-secret) para no duplicar el dato en dos lugares.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: devops-usuarios
+data:
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-service:3306/usuariosdb"
+  SPRING_DATASOURCE_USERNAME: "root"

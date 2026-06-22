@@ -1,0 +1,16 @@
+# NodePort para poder probar la API desde el navegador/Postman en
+# http://localhost:30080/usuarios (Docker Desktop expone los NodePort
+# directamente en localhost, sin pasos adicionales).
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-app-service
+  namespace: devops-usuarios
+spec:
+  type: NodePort
+  selector:
+    app: springboot-app
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080

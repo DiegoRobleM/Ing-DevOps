@@ -1,0 +1,14 @@
+# http://localhost:30090 para entrar a la UI de Prometheus desde el host.
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: devops-usuarios
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090

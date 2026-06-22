@@ -1,45 +1,26 @@
 name: CI/CD Pipeline
 
+# - push/pull_request a main: corren build-test-sonar (sirve como "required
+#   status check" para Branch Protection, Paso 13 de la guia).
+# - solo el push directo a main (nunca un PR externo) dispara el build de
+#   Docker y el despliegue real, por seguridad: un self-hosted runner nunca
+#   debe ejecutar codigo de un pull_request no confiable.
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
 
-  build:
-
+  # ---------------------------------------------------------------------
+  # Job 1: compila, corre pruebas reales (JaCoCo) y analiza con SonarCloud.
+  # Si una prueba falla o el Quality Gate de SonarCloud no pasa, este job
+  # falla y los jobs siguientes (que dependen de el con "needs") NO corren.
+  # Esto es la evidencia del Paso 14 ("detener el pipeline ante errores").
+  # ---------------------------------------------------------------------
+  build-test-sonar:
     runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Dar permisos Maven
-        run: chmod +x mvnw
-
-      - name: Compilar proyecto
-        run: ./mvnw clean package -DskipTests
-
-      - name: Analisis SonarQube
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          ./mvnw sonar:sonar \
-            -Dsonar.projectKey=PatricioDuoc_proyecto_springboot_usuarios \
-            -Dsonar.organization=patricioduoc \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=${SONAR_TOKEN}
-
-      - name: Build Docker
-        run: docker build -t springboot-devops .
-
-      - name: Deploy Docker Compose
-        run: docker compose up -d --build
+    outputs:
+      coverage: ${{ steps.coverage.outputs.v

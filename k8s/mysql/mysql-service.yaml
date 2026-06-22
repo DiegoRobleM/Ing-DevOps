@@ -1,0 +1,14 @@
+# Service interno (ClusterIP): la app le habla a "mysql-service:3306" desde
+# dentro del cluster, no necesita estar expuesto fuera de Kubernetes.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: devops-usuarios
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+  clusterIP: None   # headless: no necesitamos balanceo, solo 1 instancia

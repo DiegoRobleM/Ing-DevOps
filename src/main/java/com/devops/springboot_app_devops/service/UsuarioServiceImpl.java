@@ -1,5 +1,6 @@
 package com.devops.springboot_app_devops.service;
 
+import com.devops.springboot_app_devops.exception.RecursoNoEncontradoException;
 import com.devops.springboot_app_devops.model.Usuario;
 import com.devops.springboot_app_devops.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,8 @@ public class UsuarioServiceImpl implements UsuarioService{
 
     @Override
     public Usuario obtenerPorId(Long id) {
-        return repo.findById(id).orElse(null);
+        return repo.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con id " + id));
     }
 
     @Override
@@ -32,17 +34,6 @@ public class UsuarioServiceImpl implements UsuarioService{
 
     @Override
     public Usuario actualizar(Long id, Usuario usuario) {
-        Usuario u = repo.findById(id).orElse(null);
-        if (u != null) {
-            u.setNombre(usuario.getNombre());
-            u.setEmail(usuario.getEmail());
-            return repo.save(u);
-        }
-        return null;
-    }
-
-    @Override
-    public void eliminar(Long id) {
-        repo.deleteById(id);
-    }
-}
+        Usuario u = repo.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con id " + id));
+        u.setNo

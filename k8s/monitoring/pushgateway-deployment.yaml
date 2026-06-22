@@ -1,0 +1,32 @@
+# Pushgateway recibe metricas "de una sola vez" que no tiene sentido que
+# Prometheus scrapee periodicamente (ej: duracion del ultimo build, %
+# cobertura del ultimo analisis SonarCloud). El pipeline de GitHub Actions
+# (job "deploy", corriendo en el runner self-hosted = tu propia maquina) le
+# hace POST a este servicio despues de cada ejecucion.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pushgateway
+  namespace: devops-usuarios
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pushgateway
+  template:
+    metadata:
+      labels:
+        app: pushgateway
+    spec:
+      containers:
+        - name: pushgateway
+          image: prom/pushgateway:v1.9.0
+          ports:
+            - containerPort: 9091
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

@@ -1,0 +1,6 @@
+# Namespace dedicado para no mezclar estos recursos con otros proyectos
+# del mismo cluster local (Docker Desktop Kubernetes).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-usuarios

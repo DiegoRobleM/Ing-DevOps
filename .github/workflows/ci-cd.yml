@@ -71,8 +71,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           ./mvnw -B sonar:sonar \
-            -Dsonar.projectKey=PatricioDuoc_proyecto_springboot_usuarios \
-            -Dsonar.organization=patricioduoc \
+            -Dsonar.projectKey=DiegoRobleM_Ing-DevOps \
+            -Dsonar.organization=diegoroblem \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.token=${SONAR_TOKEN} \
             -Dsonar.qualitygate.wait=true

@@ -169,11 +169,24 @@ jobs:
 
       # Este runner self-hosted esta en Windows y usa PowerShell por defecto
       # (no bash), por eso aqui no se usan "\" para cortar linea ni heredocs.
+      #
+      # El NodePort de Docker Desktop hacia localhost no es confiable en esta
+      # maquina (problema conocido de su capa de red WSL2), asi que en vez de
+      # llamar a http://localhost:30091 directo, abrimos un "kubectl port-forward"
+      # de fondo: ese tunel pasa por el API server de Kubernetes y siempre funciona,
+      # sin depender del reenvio de puertos de Docker Desktop.
       - name: Publicar metricas del pipeline en Pushgateway
         run: |
           $startTime = ${{ needs.build-test-sonar.outputs.start_time }}
           $duration = [int]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) - $startTime
           $coverage = "${{ needs.build-test-sonar.outputs.coverage }}"
           Write-Host "Duracion total del pipeline: $($duration)s | Cobertura: $coverage%"
-          $body = "pipeline_duration_seconds $duration`npipeline_test_coverage_percent $coverage`n"
-          Invoke-RestMethod -Uri "http://localhost:30091/metrics/job/devops_pipeline" -Method Post -Body $body
+
+          $pf = Start-Process -FilePath "kubectl" -ArgumentList "port-forward -n devops-usuarios svc/pushgateway-service 30091:9091" -PassThru -WindowStyle Hidden
+          Start-Sleep -Seconds 5
+          try {
+            $body = "pipeline_duration_seconds $duration`npipeline_test_coverage_percent $coverage`n"
+            Invoke-RestMethod -Uri "http://localhost:30091/metrics/job/devops_pipeline" -Method Post -Body $body
+          } finally {
+            Stop-Process -Id $pf.Id -Force -ErrorAction SilentlyContinue
+          }

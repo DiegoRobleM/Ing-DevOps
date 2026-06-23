@@ -1,5 +1,6 @@
 package com.devops.springboot_app_devops.controller;
 
+import com.devops.springboot_app_devops.dto.UsuarioRequest;
 import com.devops.springboot_app_devops.model.Usuario;
 import com.devops.springboot_app_devops.service.UsuarioService;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,14 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public Usuario crear(@RequestBody Usuario usuario){
+    public Usuario crear(@RequestBody UsuarioRequest request){
+        Usuario usuario = new Usuario(null, request.getNombre(), request.getEmail());
         return this.usuarioService.crear(usuario);
     }
 
     @PutMapping("/{id}")
-    public Usuario actualizar(@PathVariable Long id, @RequestBody Usuario usuario){
+    public Usuario actualizar(@PathVariable Long id, @RequestBody UsuarioRequest request){
+        Usuario usuario = new Usuario(null, request.getNombre(), request.getEmail());
         return this.usuarioService.actualizar(id, usuario);
     }
 

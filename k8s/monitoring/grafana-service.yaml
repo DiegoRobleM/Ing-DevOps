@@ -1,5 +1,5 @@
-# http://localhost:30030 -> usuario/clave admin/admin (cambialos si vas
-# a dejar esto corriendo mas tiempo que la evaluacion).
+# http://<IP_PUBLICA_EC2>:30030 -> usuario/clave admin/admin (cambialos si
+# vas a dejar esto corriendo mas tiempo que la evaluacion).
 apiVersion: v1
 kind: Service
 metadata:

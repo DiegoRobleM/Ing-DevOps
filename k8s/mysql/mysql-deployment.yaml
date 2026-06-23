@@ -18,6 +18,11 @@ spec:
       containers:
         - name: mysql
           image: mysql:8
+          # Reduce el buffer pool de InnoDB (default ~128Mi + overhead) para
+          # que MySQL entre comodo en el presupuesto de memoria de una
+          # instancia EC2 de capa gratuita (1 GiB de RAM total en el nodo).
+          args:
+            - "--innodb-buffer-pool-size=96M"
           ports:
             - containerPort: 3306
           env:
@@ -46,11 +51,11 @@ spec:
             periodSeconds: 20
           resources:
             requests:
-              cpu: "250m"
-              memory: "256Mi"
+              cpu: "150m"
+              memory: "200Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "400m"
+              memory: "350Mi"
       volumes:
         - name: mysql-storage
           persistentVolumeClaim:

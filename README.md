@@ -34,23 +34,31 @@ docker compose down -v   # limpiar
 # Reporte de cobertura: target/site/jacoco/index.html
 ```
 
-## Desplegar en Kubernetes (Docker Desktop)
+## Desplegar en Kubernetes (AWS Academy Learner Lab)
+
+El cluster es un **k3s** corriendo en una instancia EC2 (Ubuntu 22.04) de
+AWS Academy Learner Lab, con un runner self-hosted de GitHub Actions
+instalado dentro de esa misma instancia. La imagen se construye y publica
+en GHCR por el pipeline; el `kubectl apply` se ejecuta directo en la EC2.
 
 ```bash
-docker build -t springboot-app-devops:latest .
 kubectl apply -f k8s/ --recursive
 
-# URLs locales una vez que los pods esten "Running":
-#   App:        http://localhost:30080/usuarios
-#   Prometheus: http://localhost:30090
-#   Grafana:    http://localhost:30030  (admin / admin)
-#   Pushgateway:http://localhost:30091
+# URLs publicas una vez que los pods esten "Running"
+# (reemplaza <IP_PUBLICA_EC2> por la Elastic IP asociada a la instancia):
+#   App:        http://<IP_PUBLICA_EC2>:30080/usuarios
+#   Prometheus: http://<IP_PUBLICA_EC2>:30090
+#   Grafana:    http://<IP_PUBLICA_EC2>:30030  (admin / admin)
+#   Pushgateway:http://<IP_PUBLICA_EC2>:30091
 ```
 
 ```bash
 kubectl get pods -n devops-usuarios -w   # ver el progreso del despliegue
 kubectl logs deployment/springboot-app -n devops-usuarios -f   # logs de la app
 ```
+
+El Security Group de la instancia EC2 debe tener abierto el rango de
+NodePorts (30000-32767) ademas del puerto 22 para SSH.
 
 ## Pipeline CI/CD
 
@@ -60,10 +68,12 @@ Definido en `.github/workflows/ci-cd.yml`, 3 jobs:
    y analiza con SonarCloud. Si una prueba falla o el Quality Gate no pasa,
    el pipeline se detiene aqui.
 2. **docker-build-push** (GitHub-hosted, solo push a `main`): construye y
-   publica la imagen en GHCR.
-3. **deploy** (runner self-hosted = tu propia maquina, solo push a `main`):
-   aplica los manifiestos de `k8s/`, actualiza la imagen y publica metricas
-   del pipeline (duracion, cobertura) en Pushgateway.
+   publica la imagen en GHCR (debe ser un paquete publico, o configurar un
+   imagePullSecret en el cluster).
+3. **deploy** (runner self-hosted instalado en la EC2 de AWS, solo push a
+   `main`): aplica los manifiestos de `k8s/`, actualiza la imagen al tag
+   del commit y publica metricas del pipeline (duracion, cobertura) en
+   Pushgateway.
 
 Configuracion necesaria antes de que el pipeline corra de punta a punta:
 ver la seccion "Puesta en marcha" del documento Word en `docs/`.

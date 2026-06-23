@@ -25,11 +25,11 @@ spec:
               mountPath: /etc/prometheus
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "50m"
+              memory: "80Mi"
             limits:
-              cpu: "300m"
-              memory: "512Mi"
+              cpu: "200m"
+              memory: "200Mi"
       volumes:
         - name: config-volume
           configMap:

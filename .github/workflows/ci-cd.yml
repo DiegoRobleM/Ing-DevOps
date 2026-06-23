@@ -138,55 +138,42 @@ jobs:
             ghcr.io/${{ steps.owner.outputs.lc }}/proyecto_springboot_usuarios:${{ github.sha }}
 
   # ---------------------------------------------------------------------
-  # Job 3: despliega en el Kubernetes LOCAL del estudiante (Docker Desktop).
-  # Corre en un runner self-hosted (instalado en tu propio computador, ver
-  # documentacion) porque GitHub no tiene red hacia tu cluster local.
+  # Job 3: despliega en el Kubernetes (k3s) de la instancia EC2 de AWS
+  # Academy. Corre en un runner self-hosted instalado DENTRO de esa misma
+  # instancia (ver docs/), asi que "kubectl" ya apunta al cluster correcto
+  # sin configuracion adicional. La imagen ya fue construida y publicada en
+  # GHCR por el job anterior, asi que aqui no se vuelve a construir nada:
+  # solo se actualiza el tag desplegado.
   # Tambien empuja metricas de este pipeline (duracion, cobertura) al
-  # Pushgateway local para que se vean en el dashboard de Grafana
+  # Pushgateway para que se vean en el dashboard de Grafana
   # (Paso 8, Paso 9, Paso 10, Paso 11).
   # ---------------------------------------------------------------------
   deploy:
     needs: [ build-test-sonar, docker-build-push ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [ self-hosted ]
+    runs-on: [ self-hosted, aws-ec2 ]
 
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Construir imagen local para Kubernetes
-        run: |
-          docker build -t springboot-app-devops:${{ github.sha }} -t springboot-app-devops:latest .
-
       - name: Aplicar manifiestos de Kubernetes
         run: kubectl apply -f k8s/ --recursive
 
-      - name: Actualizar la imagen del deployment
-        run: kubectl set image deployment/springboot-app springboot-app=springboot-app-devops:${{ github.sha }} -n devops-usuarios
+      - name: Actualizar la imagen del deployment (tag = commit de GHCR)
+        run: kubectl set image deployment/springboot-app springboot-app=ghcr.io/diegoroblem/proyecto_springboot_usuarios:${{ github.sha }} -n devops-usuarios
 
       - name: Esperar a que el rollout termine correctamente
         run: kubectl rollout status deployment/springboot-app -n devops-usuarios --timeout=180s
 
-      # Este runner self-hosted esta en Windows y usa PowerShell por defecto
-      # (no bash), por eso aqui no se usan "\" para cortar linea ni heredocs.
-      #
-      # El NodePort de Docker Desktop hacia localhost no es confiable en esta
-      # maquina (problema conocido de su capa de red WSL2), asi que en vez de
-      # llamar a http://localhost:30091 directo, abrimos un "kubectl port-forward"
-      # de fondo: ese tunel pasa por el API server de Kubernetes y siempre funciona,
-      # sin depender del reenvio de puertos de Docker Desktop.
+      # Runner Linux real (no Windows/Docker Desktop), asi que el NodePort
+      # del Pushgateway responde directo en localhost sin workarounds.
       - name: Publicar metricas del pipeline en Pushgateway
         run: |
-          $startTime = ${{ needs.build-test-sonar.outputs.start_time }}
-          $duration = [int]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) - $startTime
-          $coverage = "${{ needs.build-test-sonar.outputs.coverage }}"
-          Write-Host "Duracion total del pipeline: $($duration)s | Cobertura: $coverage%"
+          START_TIME=${{ needs.build-test-sonar.outputs.start_time }}
+          DURATION=$(( $(date +%s) - START_TIME ))
+          COVERAGE="${{ needs.build-test-sonar.outputs.coverage }}"
+          echo "Duracion total del pipeline: ${DURATION}s | Cobertura: ${COVERAGE}%"
 
-          $pf = Start-Process -FilePath "kubectl" -ArgumentList "port-forward -n devops-usuarios svc/pushgateway-service 30091:9091" -PassThru -WindowStyle Hidden
-          Start-Sleep -Seconds 5
-          try {
-            $body = "pipeline_duration_seconds $duration`npipeline_test_coverage_percent $coverage`n"
-            Invoke-RestMethod -Uri "http://localhost:30091/metrics/job/devops_pipeline" -Method Post -Body $body
-          } finally {
-            Stop-Process -Id $pf.Id -Force -ErrorAction SilentlyContinue
-          }
+          printf "pipeline_duration_seconds %s\npipeline_test_coverage_percent %s\n" "$DURATION" "$COVERAGE" \
+            | curl --data-binary @- http://localhost:30091/metrics/job/devops_pipeline

@@ -1,4 +1,4 @@
-# http://localhost:30090 para entrar a la UI de Prometheus desde el host.
+# http://<IP_PUBLICA_EC2>:30090 para entrar a la UI de Prometheus.
 apiVersion: v1
 kind: Service
 metadata:

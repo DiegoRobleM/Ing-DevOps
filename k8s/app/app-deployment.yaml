@@ -1,12 +1,13 @@
 # Despliegue del microservicio Spring Boot.
 #
-# image: "springboot-app-devops:latest" se construye LOCAL con
-#   docker build -t springboot-app-devops:latest .
-# Como Docker Desktop Kubernetes comparte el mismo daemon de Docker que usas
-# para "docker build", no hace falta subir la imagen a ningun registry para
-# que el cluster la encuentre: por eso imagePullPolicy es "IfNotPresent".
-# El pipeline (job "deploy" en el runner self-hosted) hace ese build y luego
-# actualiza el tag con "kubectl set image" en cada despliegue automatico.
+# image: la imagen se construye y publica en GHCR en el job
+# "docker-build-push" del pipeline (no se construye local en el servidor de
+# despliegue). El job "deploy" solo hace "kubectl set image" con el tag del
+# commit (github.sha) despues de aplicar este manifiesto, por eso aqui
+# alcanza con apuntar al tag ":latest" como base inicial.
+# imagePullPolicy "IfNotPresent" es correcto porque cada despliegue real usa
+# un tag distinto (el SHA del commit), asi que Kubernetes siempre detecta
+# que es una imagen nueva y la descarga de GHCR.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +16,11 @@ metadata:
   labels:
     app: springboot-app
 spec:
-  replicas: 2
+  # 1 sola replica: la instancia EC2 de capa gratuita (t3.micro / t2.micro,
+  # 1 GiB de RAM) tiene que repartir esa memoria entre la app, MySQL,
+  # Prometheus, Grafana, Pushgateway y el propio k3s. Con 2 replicas no
+  # alcanzaba el presupuesto de memoria del nodo.
+  replicas: 1
   selector:
     matchLabels:
       app: springboot-app
@@ -26,7 +31,7 @@ spec:
     spec:
       containers:
         - name: springboot-app
-          image: springboot-app-devops:latest
+          image: ghcr.io/diegoroblem/proyecto_springboot_usuarios:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -39,6 +44,12 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: MYSQL_ROOT_PASSWORD
+            # Limita el heap de la JVM a un % del limite del contenedor
+            # (en vez del default de Java, que es mas generoso) para no
+            # pelear por memoria con MySQL/Prometheus/Grafana en el mismo
+            # nodo de 1 GiB.
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=50.0"
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -53,8 +64,8 @@ spec:
             periodSeconds: 20
           resources:
             requests:
-              cpu: "250m"
-              memory: "384Mi"
+              cpu: "150m"
+              memory: "250Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "400m"
+              memory: "400Mi"

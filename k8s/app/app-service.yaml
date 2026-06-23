@@ -1,6 +1,6 @@
 # NodePort para poder probar la API desde el navegador/Postman en
-# http://localhost:30080/usuarios (Docker Desktop expone los NodePort
-# directamente en localhost, sin pasos adicionales).
+# http://<IP_PUBLICA_EC2>:30080/usuarios. El Security Group de la instancia
+# EC2 debe tener abierto el rango 30000-32767 (ver docs/).
 apiVersion: v1
 kind: Service
 metadata:

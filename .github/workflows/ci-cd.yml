@@ -162,19 +162,18 @@ jobs:
         run: kubectl apply -f k8s/ --recursive
 
       - name: Actualizar la imagen del deployment
-        run: |
-          kubectl set image deployment/springboot-app \
-            springboot-app=springboot-app-devops:${{ github.sha }} \
-            -n devops-usuarios
+        run: kubectl set image deployment/springboot-app springboot-app=springboot-app-devops:${{ github.sha }} -n devops-usuarios
 
       - name: Esperar a que el rollout termine correctamente
         run: kubectl rollout status deployment/springboot-app -n devops-usuarios --timeout=180s
 
+      # Este runner self-hosted esta en Windows y usa PowerShell por defecto
+      # (no bash), por eso aqui no se usan "\" para cortar linea ni heredocs.
       - name: Publicar metricas del pipeline en Pushgateway
         run: |
-          DURATION=$(( $(date +%s) - ${{ needs.build-test-sonar.outputs.start_time }} ))
-          echo "Duracion total del pipeline: ${DURATION}s | Cobertura: ${{ needs.build-test-sonar.outputs.coverage }}%"
-          cat <<EOF | curl --silent --show-error --data-binary @- http://localhost:30091/metrics/job/devops_pipeline
-          pipeline_duration_seconds ${DURATION}
-          pipeline_test_coverage_percent ${{ needs.build-test-sonar.outputs.coverage }}
-          EOF
+          $startTime = ${{ needs.build-test-sonar.outputs.start_time }}
+          $duration = [int]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) - $startTime
+          $coverage = "${{ needs.build-test-sonar.outputs.coverage }}"
+          Write-Host "Duracion total del pipeline: $($duration)s | Cobertura: $coverage%"
+          $body = "pipeline_duration_seconds $duration`npipeline_test_coverage_percent $coverage`n"
+          Invoke-RestMethod -Uri "http://localhost:30091/metrics/job/devops_pipeline" -Method Post -Body $body

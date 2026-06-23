@@ -36,10 +36,11 @@ docker compose down -v   # limpiar
 
 ## Desplegar en Kubernetes (AWS Academy Learner Lab)
 
-El cluster es un **k3s** corriendo en una instancia EC2 (Ubuntu 22.04) de
-AWS Academy Learner Lab, con un runner self-hosted de GitHub Actions
-instalado dentro de esa misma instancia. La imagen se construye y publica
-en GHCR por el pipeline; el `kubectl apply` se ejecuta directo en la EC2.
+El cluster es un **k3s** corriendo en una instancia EC2 t3.small (2 GiB de
+RAM, Ubuntu 24.04 LTS) de AWS Academy Learner Lab, con un runner self-hosted de
+GitHub Actions instalado dentro de esa misma instancia. La imagen se
+construye y publica en GHCR por el pipeline; el `kubectl apply` se ejecuta
+directo en la EC2.
 
 ```bash
 kubectl apply -f k8s/ --recursive

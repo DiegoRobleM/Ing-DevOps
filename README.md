@@ -46,11 +46,11 @@ directo en la EC2.
 kubectl apply -f k8s/ --recursive
 
 # URLs publicas una vez que los pods esten "Running"
-# (reemplaza <IP_PUBLICA_EC2> por la Elastic IP asociada a la instancia):
-#   App:        http://<IP_PUBLICA_EC2>:30080/usuarios
-#   Prometheus: http://<IP_PUBLICA_EC2>:30090
-#   Grafana:    http://<IP_PUBLICA_EC2>:30030  (admin / admin)
-#   Pushgateway:http://<IP_PUBLICA_EC2>:30091
+# (Elastic IP asociada a la instancia EC2):
+#   App:        http://52.54.36.238:30080/usuarios
+#   Prometheus: http://52.54.36.238:30090
+#   Grafana:    http://52.54.36.238:30030  (admin / admin)
+#   Pushgateway:http://52.54.36.238:30091
 ```
 
 ```bash

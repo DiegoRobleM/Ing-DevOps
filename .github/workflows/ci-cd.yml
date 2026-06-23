@@ -23,4 +23,135 @@ jobs:
   build-test-sonar:
     runs-on: ubuntu-latest
     outputs:
-      coverage: ${{ steps.coverage.outputs.v
+      coverage: ${{ steps.coverage.outputs.value }}
+      start_time: ${{ steps.timer.outputs.start }}
+
+    steps:
+      - name: Marcar inicio del pipeline
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # SonarCloud analiza mejor el historial completo
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Dar permisos a Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Compilar y ejecutar pruebas (con JaCoCo)
+        run: ./mvnw -B clean verify
+
+      - name: Analisis de calidad SonarCloud (con Quality Gate bloqueante)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./mvnw -B sonar:sonar \
+            -Dsonar.projectKey=PatricioDuoc_proyecto_springboot_usuarios \
+            -Dsonar.organization=patricioduoc \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${SONAR_TOKEN} \
+            -Dsonar.qualitygate.wait=true
+
+      - name: Calcular % de cobertura (JaCoCo) para el dashboard
+        id: coverage
+        run: |
+          VALUE=$(python3 -c "
+          import xml.etree.ElementTree as ET
+          root = ET.parse('target/site/jacoco/jacoco.xml').getroot()
+          counters = [c for c in root if c.tag == 'counter' and c.get('type') == 'INSTRUCTION']
+          c = counters[-1]
+          missed = int(c.get('missed')); covered = int(c.get('covered'))
+          print(f'{covered / (missed + covered) * 100:.1f}')
+          ")
+          echo "Cobertura calculada: $VALUE%"
+          echo "value=$VALUE" >> "$GITHUB_OUTPUT"
+
+      - name: Subir jar compilado como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+          retention-days: 5
+
+  # ---------------------------------------------------------------------
+  # Job 2: construye la imagen Docker y la publica en GitHub Container
+  # Registry (GHCR), como respaldo versionado de cada build (Paso 3).
+  # Solo corre con push directo a main, nunca en pull_request.
+  # ---------------------------------------------------------------------
+  docker-build-push:
+    needs: build-test-sonar
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Login en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build y push de la imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/proyecto_springboot_usuarios:latest
+            ghcr.io/${{ github.repository_owner }}/proyecto_springboot_usuarios:${{ github.sha }}
+
+  # ---------------------------------------------------------------------
+  # Job 3: despliega en el Kubernetes LOCAL del estudiante (Docker Desktop).
+  # Corre en un runner self-hosted (instalado en tu propio computador, ver
+  # documentacion) porque GitHub no tiene red hacia tu cluster local.
+  # Tambien empuja metricas de este pipeline (duracion, cobertura) al
+  # Pushgateway local para que se vean en el dashboard de Grafana
+  # (Paso 8, Paso 9, Paso 10, Paso 11).
+  # ---------------------------------------------------------------------
+  deploy:
+    needs: [ build-test-sonar, docker-build-push ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [ self-hosted ]
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Construir imagen local para Kubernetes
+        run: |
+          docker build -t springboot-app-devops:${{ github.sha }} -t springboot-app-devops:latest .
+
+      - name: Aplicar manifiestos de Kubernetes
+        run: kubectl apply -f k8s/ --recursive
+
+      - name: Actualizar la imagen del deployment
+        run: |
+          kubectl set image deployment/springboot-app \
+            springboot-app=springboot-app-devops:${{ github.sha }} \
+            -n devops-usuarios
+
+      - name: Esperar a que el rollout termine correctamente
+        run: kubectl rollout status deployment/springboot-app -n devops-usuarios --timeout=180s
+
+      - name: Publicar metricas del pipeline en Pushgateway
+        run: |
+          DURATION=$(( $(date +%s) - ${{ needs.build-test-sonar.outputs.start_time }} ))
+          echo "Duracion total del pipeline: ${DURATION}s | Cobertura: ${{ needs.build-test-sonar.outputs.coverage }}%"
+          cat <<EOF | curl --silent --show-error --data-binary @- http://localhost:30091/metrics/job/devops_pipeline
+          pipeline_duration_seconds ${DURATION}
+          pipeline_test_coverage_percent ${{ needs.build-test-sonar.outputs.coverage }}
+          EOF

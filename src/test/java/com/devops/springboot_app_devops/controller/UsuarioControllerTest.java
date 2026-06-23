@@ -1,5 +1,6 @@
 package com.devops.springboot_app_devops.controller;
 
+import com.devops.springboot_app_devops.dto.UsuarioRequest;
 import com.devops.springboot_app_devops.exception.RecursoNoEncontradoException;
 import com.devops.springboot_app_devops.model.Usuario;
 import com.devops.springboot_app_devops.service.UsuarioService;
@@ -13,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -73,6 +75,19 @@ class UsuarioControllerTest {
                         .content(objectMapper.writeValueAsString(nuevo)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void actualizar_devuelveUsuarioActualizado() throws Exception {
+        UsuarioRequest request = new UsuarioRequest("Diego Actualizado", "nuevo@duocuc.cl");
+        Usuario actualizado = new Usuario(1L, "Diego Actualizado", "nuevo@duocuc.cl");
+        when(usuarioService.actualizar(eq(1L), any(Usuario.class))).thenReturn(actualizado);
+
+        mockMvc.perform(put("/usuarios/1")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Diego Actualizado"));
     }
 
     @Test

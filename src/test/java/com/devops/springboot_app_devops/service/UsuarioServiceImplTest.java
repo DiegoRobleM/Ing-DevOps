@@ -57,7 +57,8 @@ class UsuarioServiceImplTest {
 
         Usuario resultado = service.obtenerPorId(1L);
 
-        assertThat(resultado.getNombre()).isEqualTo("Diego");
+        // Aserción falsa a propósito (demo evidencia 6.1 - revertir después de capturar)
+        assertThat(resultado.getNombre()).isEqualTo("valor incorrecto");
     }
 
     @Test

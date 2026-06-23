@@ -26,6 +26,23 @@ jobs:
       coverage: ${{ steps.coverage.outputs.value }}
       start_time: ${{ steps.timer.outputs.start }}
 
+    # MySQL real para que el test de contexto (SpringbootAppDevopsApplicationTests)
+    # pueda conectarse en localhost:3306, igual que application.properties espera
+    # cuando no hay variables de entorno (caso de este runner de GitHub).
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root-2023
+          MYSQL_DATABASE: usuariosdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot-2023"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Marcar inicio del pipeline
         id: timer

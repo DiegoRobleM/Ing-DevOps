@@ -36,4 +36,16 @@ public class UsuarioServiceImpl implements UsuarioService{
     public Usuario actualizar(Long id, Usuario usuario) {
         Usuario u = repo.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con id " + id));
-        u.setNo
+        u.setNombre(usuario.getNombre());
+        u.setEmail(usuario.getEmail());
+        return repo.save(u);
+    }
+
+    @Override
+    public void eliminar(Long id) {
+        if (!repo.existsById(id)) {
+            throw new RecursoNoEncontradoException("Usuario no encontrado con id " + id);
+        }
+        repo.deleteById(id);
+    }
+}

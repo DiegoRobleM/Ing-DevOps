@@ -21,8 +21,14 @@ spec:
           # Reduce el buffer pool de InnoDB (default ~128Mi + overhead) para
           # que MySQL entre comodo en el presupuesto de memoria de una
           # instancia EC2 de capa gratuita (1 GiB de RAM total en el nodo).
+          # performance_schema se desactiva porque por si solo puede consumir
+          # decenas de MB en reposo, sin aportar nada en este entorno academico.
+          # La etiqueta "mysql:8" hoy resuelve a 8.4.x (mas pesado en arranque
+          # que 8.0.x), por lo que el limite de memoria se subio para
+          # absorber el pico de memoria durante la inicializacion de InnoDB.
           args:
             - "--innodb-buffer-pool-size=96M"
+            - "--performance-schema=OFF"
           ports:
             - containerPort: 3306
           env:
@@ -55,7 +61,7 @@ spec:
               memory: "200Mi"
             limits:
               cpu: "400m"
-              memory: "350Mi"
+              memory: "480Mi"
       volumes:
         - name: mysql-storage
           persistentVolumeClaim:

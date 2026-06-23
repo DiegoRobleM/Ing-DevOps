@@ -122,14 +122,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR exige nombres en minusculas; github.repository_owner puede venir
+      # con mayusculas (ej. "DiegoRobleM"), asi que lo normalizamos aqui.
+      - name: Normalizar nombre del owner a minusculas
+        id: owner
+        run: echo "lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Build y push de la imagen
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/proyecto_springboot_usuarios:latest
-            ghcr.io/${{ github.repository_owner }}/proyecto_springboot_usuarios:${{ github.sha }}
+            ghcr.io/${{ steps.owner.outputs.lc }}/proyecto_springboot_usuarios:latest
+            ghcr.io/${{ steps.owner.outputs.lc }}/proyecto_springboot_usuarios:${{ github.sha }}
 
   # ---------------------------------------------------------------------
   # Job 3: despliega en el Kubernetes LOCAL del estudiante (Docker Desktop).

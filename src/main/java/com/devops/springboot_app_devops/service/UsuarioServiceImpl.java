@@ -66,4 +66,20 @@ public class UsuarioServiceImpl implements UsuarioService{
             return "INVALIDO";
         }
     }
+
+    // DEMO temporal para evidencia 6.2 (Quality Gate): segundo método nuevo
+    // sin pruebas. SonarCloud omite la condición de cobertura cuando el
+    // código nuevo tiene menos de 20 líneas, así que este método extra
+    // asegura superar ese umbral. Eliminar junto con el método anterior.
+    public String validarFormatoUsuario(Usuario usuario) {
+        if (usuario == null) {
+            return "USUARIO_NULO";
+        } else if (usuario.getNombre() == null || usuario.getNombre().isBlank()) {
+            return "NOMBRE_INVALIDO";
+        } else if (usuario.getEmail() == null || !usuario.getEmail().contains("@")) {
+            return "EMAIL_INVALIDO";
+        } else {
+            return "VALIDO";
+        }
+    }
 }

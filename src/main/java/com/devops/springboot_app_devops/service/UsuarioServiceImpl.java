@@ -48,4 +48,22 @@ public class UsuarioServiceImpl implements UsuarioService{
         }
         repo.deleteById(id);
     }
+
+    // DEMO temporal para evidencia 6.2 (Quality Gate): código nuevo sin
+    // ninguna prueba, para que la cobertura de "new code" caiga bajo el
+    // 80% que exige el Quality Gate por defecto de SonarCloud.
+    // Eliminar este método despues de capturar la evidencia.
+    public String clasificarDominioEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return "DESCONOCIDO";
+        } else if (email.endsWith("@duocuc.cl")) {
+            return "INSTITUCIONAL";
+        } else if (email.endsWith("@gmail.com")) {
+            return "PERSONAL";
+        } else if (email.contains("@")) {
+            return "EXTERNO";
+        } else {
+            return "INVALIDO";
+        }
+    }
 }
